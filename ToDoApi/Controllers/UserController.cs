@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
-
+using ToDoApi.Service;
 
 namespace ToDoApi.Controllers
 {
@@ -10,9 +10,11 @@ namespace ToDoApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly LoggerService loggerService;
         public UserController(DataContext context)
         {
             _context = context;
+            loggerService = new LoggerService(context);
         }
 
         [HttpGet]
@@ -43,6 +45,8 @@ namespace ToDoApi.Controllers
 
             _context.ToDoModel.Add(task);
             await _context.SaveChangesAsync();
+
+            await loggerService.UpdateLogDb(userName, task.Name, "Add Task");
 
             return Ok(await GetFilteredUsers(loggedUser));
         }
@@ -85,6 +89,8 @@ namespace ToDoApi.Controllers
             dbTask.Date = task.Date;
 
             await _context.SaveChangesAsync();
+
+            await loggerService.UpdateLogDb(userName, task.Name, "Update Task");
 
             return Ok(await GetFilteredUsers(loggedUser));
         }
@@ -133,9 +139,10 @@ namespace ToDoApi.Controllers
                 return BadRequest("Task not Found!");
             }
 
-            int userId = dbTask.UsersId;
             _context.ToDoModel.Remove(dbTask);
             await _context.SaveChangesAsync();
+
+            await loggerService.UpdateLogDb(userName, dbTask.Name, "Add Task");
 
             return await GetFilteredUsers(loggedUser);
         }
