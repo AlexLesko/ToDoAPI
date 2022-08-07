@@ -24,14 +24,7 @@ namespace ToDoApi.Controllers
         [HttpPost("Filtered")]
         public async Task<ActionResult<List<Users>>> GetFilteresUsers(Users user)
         {
-            if(user.UserRight == "Admin")
-            {
-                return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
-            }
-            else
-            {
-                return Ok(_context.Users.Include(e => e.ToDoList).Where(x => x.Name == user.Name));//. .FirstOrDefaultAsync(x => x.Name == user.Name));
-            }
+            return Ok(await GetFilteredUsers(user));
         }
 
         [HttpPost("CreateUser")]
@@ -43,18 +36,21 @@ namespace ToDoApi.Controllers
             return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
         }
 
-        [HttpPost("AddTask")]
-        public async Task<ActionResult<Users>> AddTask(ToDoModel task)
+        [HttpPost("AddTask/{userName}")]
+        public async Task<ActionResult<List<Users>>> AddTask(string userName, ToDoModel task)
         {
+            Users loggedUser = await _context.Users.FirstOrDefaultAsync(x => x.Name == userName);
+
             _context.ToDoModel.Add(task);
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
+            return Ok(await GetFilteredUsers(loggedUser));
         }
 
-        [HttpPut]
-        public async Task<ActionResult<List<Users>>> UpdateUser(Users user)
+        [HttpPut("{userName}")]
+        public async Task<ActionResult<List<Users>>> UpdateUser(string userName, Users user)
         {
+            Users loggedUser = await _context.Users.FirstOrDefaultAsync(userDB => userDB.Id == user.Id);
             var dbUser = await _context.Users.Include(e => e.ToDoList).FirstOrDefaultAsync(x => x.Id == user.Id);
             if (dbUser == null)
             {
@@ -67,14 +63,18 @@ namespace ToDoApi.Controllers
             dbUser.ImageTitle = user.ImageTitle;
             dbUser.ImageData = user.ImageData;
 
+            var dbAuthUser = await _context.userAuths.FirstOrDefaultAsync(userAuth => userAuth.UserId == user.Id);
+            dbAuthUser.Name = user.Name;
+
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
+            return Ok(await GetFilteredUsers(loggedUser));
         }
 
-        [HttpPut("UpdateTask")]
-        public async Task<ActionResult<Users>> UpdateTask(ToDoModel task)
+        [HttpPut("UpdateTask/{userName}")]
+        public async Task<ActionResult<List<Users>>> UpdateTask(string userName, ToDoModel task)
         {
+            Users loggedUser = await _context.Users.FirstOrDefaultAsync(x => x.Name == userName);
             var dbTask = await _context.ToDoModel.FindAsync(task.Id);
             if (dbTask == null)
             {
@@ -86,12 +86,13 @@ namespace ToDoApi.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
+            return Ok(await GetFilteredUsers(loggedUser));
         }
 
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<List<Users>>> DeleteUser(int id)
+        [HttpDelete("{userName}/{id}")]
+        public async Task<ActionResult<List<Users>>> DeleteUser(string userName,int id)
         {
+            Users loggedUser = await _context.Users.FirstOrDefaultAsync(x => x.Name == userName);
             var dbUser = await _context.Users.Include(e => e.ToDoList).FirstOrDefaultAsync(x => x.Id == id);
             if (dbUser == null)
             {
@@ -108,12 +109,24 @@ namespace ToDoApi.Controllers
             _context.Users.Remove(dbUser);
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
+            UserAuth userToRemove = await _context.userAuths.FirstOrDefaultAsync(user => user.UserId == id);
+            _context.userAuths.Remove(userToRemove);
+            await _context.SaveChangesAsync();
+
+            if (dbUser.Name == userName)
+            {
+                return Ok(null);
+            }
+            else
+            {
+                return Ok(await GetFilteredUsers(loggedUser));
+            }
         }
 
-        [HttpDelete("DeleteTask/{id}")]
-        public async Task<ActionResult<Users>> DeleteTask(int id)
+        [HttpDelete("DeleteTask/{userName}/{id}")]
+        public async Task<ActionResult<List<Users>>> DeleteTask(string userName, int id)
         {
+            Users loggedUser = await _context.Users.FirstOrDefaultAsync(x => x.Name == userName);
             var dbTask = await _context.ToDoModel.FindAsync(id);
             if(dbTask == null)
             {
@@ -124,7 +137,19 @@ namespace ToDoApi.Controllers
             _context.ToDoModel.Remove(dbTask);
             await _context.SaveChangesAsync();
 
-            return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
+            return await GetFilteredUsers(loggedUser);
+        }
+
+        private async Task<List<Users>> GetFilteredUsers(Users user)
+        {
+            if (user.UserRight == "Admin")
+            {
+                return await _context.Users.Include(e => e.ToDoList).ToListAsync();
+            }
+            else
+            {
+                return await _context.Users.Include(e => e.ToDoList).Where(x => x.Name == user.Name).ToListAsync();//. .FirstOrDefaultAsync(x => x.Name == user.Name));
+            }
         }
     }
 }

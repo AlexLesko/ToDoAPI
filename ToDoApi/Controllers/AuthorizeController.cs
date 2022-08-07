@@ -31,14 +31,16 @@ namespace ToDoApi.Controllers
             }
 
             authService.CreatePasswordHash(user.userRequest.password, out passwordHash, out passwordSalt);
-            
+
+            _context.Users.Add(user.users);
+            await _context.SaveChangesAsync();
+
             userAuth.Name = user.userRequest.userName;
-            userAuth.UserId = user.users.Id;
+            userAuth.UserId = (await _context.Users.FirstOrDefaultAsync(userDB => userDB.Name == user.userRequest.userName)).Id;
             userAuth.PasswordHash = passwordHash;
             userAuth.PasswordSalt = passwordSalt;
             
             _context.userAuths.Add(userAuth);
-            _context.Users.Add(user.users);
             await _context.SaveChangesAsync();
 
             return Ok(user.users);
@@ -55,13 +57,13 @@ namespace ToDoApi.Controllers
                 return BadRequest("User not found!");
             }
 
-            var dbUserAuth = await _context.userAuths.FirstOrDefaultAsync(user => user.UserId == dbUser.Id);
+            var dbUserAuth = await _context.userAuths.FirstOrDefaultAsync(user => user.Name == dbUser.Name);
             if(dbUserAuth != null)
             {
                 userAuth = dbUserAuth;
                 if(authService.VerifyPassword(userRequest.password, userAuth.PasswordHash, userAuth.PasswordSalt))
                 {
-                    return await _context.Users.FirstOrDefaultAsync(user => user.Id == userAuth.UserId);
+                    return await _context.Users.FirstOrDefaultAsync(user => user.Name == userAuth.Name);
                 }
                 else
                 {
