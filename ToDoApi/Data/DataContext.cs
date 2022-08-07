@@ -9,5 +9,6 @@ namespace ToDoApi.Data
 
         public DbSet<Users> Users => Set<Users>();
         public DbSet<ToDoModel> ToDoModel => Set<ToDoModel>();
+        public DbSet<UserAuth> userAuths => Set<UserAuth>();
     }
 }

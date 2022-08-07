@@ -1,5 +1,6 @@
 global using Microsoft.EntityFrameworkCore;
 global using ToDoApi.Data;
+global using ToDoApi.Model;
 
 var builder = WebApplication.CreateBuilder(args);
 
