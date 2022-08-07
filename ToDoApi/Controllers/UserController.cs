@@ -21,10 +21,17 @@ namespace ToDoApi.Controllers
             return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Users>> GetSingleUsers(int id)
+        [HttpPost("Filtered")]
+        public async Task<ActionResult<List<Users>>> GetFilteresUsers(Users user)
         {
-            return Ok(await _context.Users.Include(e => e.ToDoList).FirstOrDefaultAsync(x => x.Id == id));
+            if(user.UserRight == "Admin")
+            {
+                return Ok(await _context.Users.Include(e => e.ToDoList).ToListAsync());
+            }
+            else
+            {
+                return Ok(_context.Users.Include(e => e.ToDoList).Where(x => x.Name == user.Name));//. .FirstOrDefaultAsync(x => x.Name == user.Name));
+            }
         }
 
         [HttpPost("CreateUser")]

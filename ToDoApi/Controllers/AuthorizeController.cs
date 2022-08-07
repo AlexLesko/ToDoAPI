@@ -43,5 +43,35 @@ namespace ToDoApi.Controllers
 
             return Ok(user.users);
         }
+
+        [HttpPost("Login")]
+        public async Task<ActionResult<Users>> LoginUser(UserRequest userRequest)
+        {
+            UserAuth userAuth = new UserAuth();
+
+            var dbUser = await _context.Users.FirstOrDefaultAsync(user => user.Name == userRequest.userName);
+            if(dbUser == null)
+            {
+                return BadRequest("User not found!");
+            }
+
+            var dbUserAuth = await _context.userAuths.FirstOrDefaultAsync(user => user.UserId == dbUser.Id);
+            if(dbUserAuth != null)
+            {
+                userAuth = dbUserAuth;
+                if(authService.VerifyPassword(userRequest.password, userAuth.PasswordHash, userAuth.PasswordSalt))
+                {
+                    return await _context.Users.FirstOrDefaultAsync(user => user.Id == userAuth.UserId);
+                }
+                else
+                {
+                    return BadRequest("Invalid password");
+                }
+            }
+            else
+            {
+                return BadRequest("User or Password not found!");
+            }
+        }
     }
 }
