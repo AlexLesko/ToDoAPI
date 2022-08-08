@@ -17,6 +17,12 @@ namespace ToDoApi.Controllers
             loggerService = new LoggerService(context);
         }
 
+        [HttpGet("Logs")]
+        public async Task<ActionResult<List<LoggerModel>>> GetLogs()
+        {
+            return Ok(await _context.loggerDb.ToListAsync());
+        }
+
         [HttpGet]
         public async Task<ActionResult<List<Users>>> GetUsers()
         {
@@ -46,7 +52,7 @@ namespace ToDoApi.Controllers
             _context.ToDoModel.Add(task);
             await _context.SaveChangesAsync();
 
-            await loggerService.UpdateLogDb(userName, task.Name, "Add Task");
+            await loggerService.UpdateLogDb(userName, task.Name, "Add Task for userID:" + task.UsersId);
 
             return Ok(await GetFilteredUsers(loggedUser));
         }
@@ -90,7 +96,7 @@ namespace ToDoApi.Controllers
 
             await _context.SaveChangesAsync();
 
-            await loggerService.UpdateLogDb(userName, task.Name, "Update Task");
+            await loggerService.UpdateLogDb(userName, task.Name, "Update Task for userID:" + task.UsersId);
 
             return Ok(await GetFilteredUsers(loggedUser));
         }
@@ -142,7 +148,7 @@ namespace ToDoApi.Controllers
             _context.ToDoModel.Remove(dbTask);
             await _context.SaveChangesAsync();
 
-            await loggerService.UpdateLogDb(userName, dbTask.Name, "Add Task");
+            await loggerService.UpdateLogDb(userName, dbTask.Name, "Deleted Task for userID:" + dbTask.UsersId);
 
             return await GetFilteredUsers(loggedUser);
         }
@@ -155,7 +161,7 @@ namespace ToDoApi.Controllers
             }
             else
             {
-                return await _context.Users.Include(e => e.ToDoList).Where(x => x.Name == user.Name).ToListAsync();//. .FirstOrDefaultAsync(x => x.Name == user.Name));
+                return await _context.Users.Include(e => e.ToDoList).Where(x => x.Name == user.Name).ToListAsync();
             }
         }
     }
